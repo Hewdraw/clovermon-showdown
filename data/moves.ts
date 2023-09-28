@@ -41912,11 +41912,16 @@ beforeTurnCallback(pokemon) {
 		num: 667132,
 		accuracy: 90,
 		basePower: 30,
+		basePowerCallback(pokemon, target, move) {
+			return 30 * move.hit;
+		},
 		category: "Special",
 		name: "Epidemic",
 		pp: 15,
 		priority: 0,
 		flags: {contact: 1, protect: 1, mirror: 1},
+		multihit: 3,
+		multiaccuracy: true,
 		secondary: null,
 		target: "normal",
 		type: "Virus",
@@ -46545,7 +46550,10 @@ beforeTurnCallback(pokemon) {
 		pp: 10,
 		priority: 0,
 		flags: {protect: 1, mirror: 1, sound: 1},
-		secondary: null,
+		secondary: {
+			chance: 30,
+			status: 'slp',
+		},
 		target: "allAdjacentFoes",
 		type: "Psychic",
 		isNonstandard: "Future",
@@ -53461,6 +53469,15 @@ beforeTurnCallback(pokemon) {
 		pp: 20,
 		priority: 0,
 		flags: {snatch: 1},
+		onModifyMove(move, pokemon) {
+			if (this.field.getPseudoWeather('swarm')){
+				move.boosts = {def: 2, spd: 2};
+			}
+		},
+		boosts: {
+			def: 1,
+			spd: 1,
+		},
 		secondary: null,
 		target: "self",
 		type: "Bug",
@@ -57937,6 +57954,20 @@ beforeTurnCallback(pokemon) {
 		pp: 10,
 		priority: 0,
 		flags: {reflectable: 1},
+		sideCondition: 'bonfire',
+		condition: {
+			// this is a side condition
+			onSideStart(side) {
+				this.add('-sidestart', side, 'Bonfire');
+			},
+			onEntryHazard(pokemon) {
+				var healPercent = 10
+				if (pokemon.hasType('Fire')) {
+					healPercent = 8
+				}
+				this.heal(pokemon.baseMaxhp / healPercent);
+			},
+		},
 		secondary: null,
 		target: "allySide",
 		type: "Fire",
@@ -72800,7 +72831,10 @@ beforeTurnCallback(pokemon) {
 		pp: 10,
 		priority: 0,
 		flags: {contact: 1, protect: 1, mirror: 1},
-		secondary: null,
+		secondary: {
+			chance: 30,
+			status: 'par',
+		},
 		target: "normal",
 		type: "Virus",
 		isNonstandard: "Future",
@@ -72922,6 +72956,19 @@ beforeTurnCallback(pokemon) {
 		pp: 20,
 		priority: 0,
 		flags: {contact: 1, protect: 1, mirror: 1},
+		onHit(target) {
+			if (!this.canSwitch(target.side)) {
+				this.attrLastMove('[still]');
+				this.add('-fail', target);
+				return this.NOT_FAIL;
+			}
+		},
+		self: {
+			onHit(source) {
+				source.skipBeforeSwitchOutEventFlag = true;
+			},
+		},
+		selfSwitch: 'copyvolatile',
 		secondary: null,
 		target: "normal",
 		type: "Fairy",
@@ -73352,6 +73399,38 @@ beforeTurnCallback(pokemon) {
 		name: "Swarm",
 		pp: 10,
 		priority: 0,
+		pseudoWeather: 'swarm',
+		condition: {
+			duration: 5,
+			durationCallback(target, source, effect) {
+				if (source?.hasItem('swarmedrock') ) {
+					return 10;
+				}
+				return 5;
+			},
+			onFieldStart(field, source) {
+				this.add('-fieldstart', 'move: Swarm', '[of] ' + source);
+			},
+			onBasePowerPriority: 1,
+			onBasePower(basePower, attacker, defender, move) {
+				if (move.type === 'Bug') {
+					this.debug('swarm increase');
+					return this.chainModify([1.3]);
+				}
+			},
+			onFieldResidualOrder: 27,
+			onFieldResidualSubOrder: 4,
+			onResidual(pokemon) {
+				if (pokemon.hasType('Bug')) return;
+				if (pokemon.hasItem('hazmatsuit')) return;
+				if (pokemon.hasItem('safetygoggles')) return;
+				const typeMod = this.clampIntRange(pokemon.runEffectiveness(this.dex.getActiveMove('swarm')), -6, 6);
+				this.damage(pokemon.maxhp * Math.pow(2, typeMod) / 8);
+			},
+			onFieldEnd() {
+				this.add('-fieldend', 'move: Swarm');
+			},
+		},
 		flags: {mirror: 1},
 		secondary: null,
 		target: "all",
@@ -74049,7 +74128,10 @@ beforeTurnCallback(pokemon) {
 		pp: 25,
 		priority: 0,
 		flags: {protect: 1, mirror: 1, defrost: 1},
-		secondary: null,
+		secondary: {
+			chance: 100,
+			status: 'brn',
+		},
 		target: "normal",
 		type: "Magma",
 		isNonstandard: "Future",
