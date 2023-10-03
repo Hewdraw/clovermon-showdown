@@ -72956,19 +72956,6 @@ beforeTurnCallback(pokemon) {
 		pp: 20,
 		priority: 0,
 		flags: {contact: 1, protect: 1, mirror: 1},
-		onHit(target) {
-			if (!this.canSwitch(target.side)) {
-				this.attrLastMove('[still]');
-				this.add('-fail', target);
-				return this.NOT_FAIL;
-			}
-		},
-		self: {
-			onHit(source) {
-				source.skipBeforeSwitchOutEventFlag = true;
-			},
-		},
-		selfSwitch: 'copyvolatile',
 		secondary: null,
 		target: "normal",
 		type: "Fairy",
